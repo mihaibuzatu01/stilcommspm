@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stilul social de comunicare</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#171717;--muted:#6b7280;--line:#d9dde5;--accent:#263b6a;}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink)}
+main{max-width:680px;margin:auto;padding:18px 14px 42px} .hero,.card,.result{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 5px 20px #0000000b}
+h1{font-size:26px;line-height:1.08;margin:0 0 10px} h2{font-size:20px;margin:0 0 8px} p{line-height:1.45} .muted{color:var(--muted);font-size:14px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px} input[type=text]{width:100%;font-size:16px;padding:13px;border:1px solid var(--line);border-radius:12px}
+#quiz{margin-top:14px} .card{margin:12px 0} .qnum{font-weight:700;color:var(--muted);font-size:13px;margin-bottom:10px}
+.choice{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:15px;padding:15px;margin:10px 0;cursor:pointer;font-size:16px;line-height:1.35}
+.choice:has(input:checked){border:2px solid var(--accent);background:#f3f6ff} .choice input{width:22px;height:22px;flex:0 0 auto;margin:0}
+button{width:100%;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:var(--accent);color:white;margin-top:12px}
+.result{display:none;margin-top:18px} .scores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}
+.score{text-align:center;border:1px solid var(--line);border-radius:14px;padding:10px 4px} .score b{display:block;font-size:23px;margin-top:4px}
+.style{font-size:25px;font-weight:800;margin:10px 0} canvas{width:100%;height:auto;display:block;margin-top:10px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:13px;color:var(--muted);margin-top:10px}
+.error{color:#9b1c1c;font-weight:650;margin-top:10px;display:none}
+@media(max-width:480px){main{padding:12px 10px 30px} .hero,.card,.result{border-radius:17px;padding:16px} h1{font-size:23px} .fields{grid-template-columns:1fr} .choice{font-size:15.5px;padding:14px}}
+</style></head>
+<body><main>
+<section class="hero"><h1>Chestionar de autopercepere a stilului social de comunicare</h1>
+<p class="muted">Alege o singură variantă la fiecare dintre cele 30 de întrebări. La final primești scorurile A/T/C/E, stilul predominant și profilul grafic.</p>
+<div class="fields"><input id="name" type="text" placeholder="Nume și prenume"><input id="group" type="text" placeholder="Grupă / An"></div></section>
+<form id="quiz"></form>
+<div class="error" id="err">Completează toate cele 30 de întrebări pentru a vedea rezultatul.</div>
+<button id="calc" type="button">Vezi rezultatul</button>
+<section class="result" id="result">
+<h2>Rezultatul tău</h2><div class="scores" id="scores"></div>
+<div class="style" id="style"></div><p class="muted" id="mix"></p>
+<canvas id="chart" width="700" height="700"></canvas>
+<div class="legend"><span>A + C = Analitic</span><span>T + C = Directiv</span><span>A + E = Amabil</span><span>T + E = Expresiv</span></div>
+</section>
+</main>
+<script>
+const questions=[{"n": 1, "a": "Tind sa-mi impartasesc gandurile cu ceilalti.", "b": "Tind sa-mi pastrez gandurile pentru mine.", "la": "T", "lb": "A"}, {"n": 2, "a": "Ma vad rece si circumspect in relatia cu alte persoane.", "b": "Ma vad cald si prietenos cu ceilalti.", "la": "C", "lb": "E"}, {"n": 3, "a": "Tind sa-mi manifest emotiile.", "b": "Tind sa „tin in mine‟ emotiile.", "la": "E", "lb": "C"}, {"n": 4, "a": "Ma vad ca pe o persoana iute.", "b": "Ma vad ca pe o persoana lenta.", "la": "T", "lb": "A"}, {"n": 5, "a": "Consider ca in cele mai multe situatii imi asum riscul.", "b": "Consider ca in cele mai multe situatii evit sau minimizez riscul.", "la": "T", "lb": "A"}, {"n": 6, "a": "Consider ca sunt o persoana vesela si care iubeste distractia.", "b": "Consider ca sunt o persoana serioasa si ganditoare.", "la": "E", "lb": "C"}, {"n": 7, "a": "Tind sa astept ca altii sa initieze interactiunea cu mine.", "b": "Eu sunt cel care tind sa initiez interactiunea.", "la": "A", "lb": "T"}, {"n": 8, "a": "Am tendinta sa vorbesc bazandu-ma pe opinii.", "b": "Am tendinta sa vorbesc bazandu-ma pe fapte.", "la": "E", "lb": "C"}, {"n": 9, "a": "Tind sa imi placa sa lucrez cu altii.", "b": "Tind sa imi placa sa lucrez singur.", "la": "E", "lb": "C"}, {"n": 10, "a": "Tind sa preiau conducerea unei situatii.", "b": "Tind sa raman in planul doi.", "la": "T", "lb": "A"}, {"n": 11, "a": "Consider ca sunt dinamic si direct.", "b": "Consider ca sunt linistit si moderat.", "la": "T", "lb": "A"}, {"n": 12, "a": "Tind sa ma concentrez asupra rezultatelor si impactului.", "b": "Tind sa ma concentrez asupra procesului si metodei.", "la": "T", "lb": "A"}, {"n": 13, "a": "Am tendinta sa ma intereseze mai mult ceea ce simt oamenii.", "b": "Am tendinta sa ma intereseze mai mult ceea ce gandesc oamenii.", "la": "E", "lb": "C"}, {"n": 14, "a": "Tind sa fiu informal in relatiile cu altii.", "b": "Tind sa fiu formal si sa adopt un stil de afacere in relatiile cu altii.", "la": "E", "lb": "C"}, {"n": 15, "a": "Am tendinta sa evit implicarea personala in relatiile cu altii.", "b": "Am tendinta sa abordez o relatie intr-un mod mai personal.", "la": "C", "lb": "E"}, {"n": 16, "a": "Tind sa abordez conflictele pe fata.", "b": "Tind sa evit conflictele si confruntarea.", "la": "T", "lb": "A"}, {"n": 17, "a": "Am tendinta sa-mi pierd repede rabdarea cu altii.", "b": "Consider ca sunt rabdator cu ceilalti.", "la": "T", "lb": "A"}, {"n": 18, "a": "Tind sa interactionez mult cu ceilalti.", "b": "Tind sa am o interactiune limitata cu ceilalti.", "la": "E", "lb": "C"}, {"n": 19, "a": "Tind sa fiu mai orientat spre sarcina.", "b": "Tind sa fiu mai orientat spre relatie.", "la": "C", "lb": "E"}, {"n": 20, "a": "Am tendinta sa fiu rezervat si distant cu ceilalti.", "b": "Am tendinta sa fiu deschis si sincer cu ceilalti.", "la": "C", "lb": "E"}, {"n": 21, "a": "Consider ca sunt mai degraba competitiv cu altii.", "b": "Consider ca sunt mai degraba cooperant cu altii.", "la": "T", "lb": "A"}, {"n": 22, "a": "Consider ca sunt mai retinut in relatiile cu altii.", "b": "Consider ca sunt mai puternic in relatiile cu altii.", "la": "A", "lb": "T"}, {"n": 23, "a": "Tind sa fiu indiferent fata de sentimentele altora.", "b": "Tind sa iau parte la sentimentele altora.", "la": "C", "lb": "E"}, {"n": 24, "a": "Tind sa iau rapid decizii.", "b": "Tind sa iau deciziile mai incet.", "la": "T", "lb": "A"}, {"n": 25, "a": "Consider ca sunt nepretentios si tolerant.", "b": "Consider ca sunt exigent cu mine si cu ceilalti.", "la": "E", "lb": "C"}, {"n": 26, "a": "Tind sa urmez instructiunile altora.", "b": "Tind sa indrum actiunile altora.", "la": "A", "lb": "T"}, {"n": 27, "a": "Am tendinta sa comunic in mod precaut si masurat.", "b": "Am tendinta sa comunic in mod impulsiv si dramatic.", "la": "C", "lb": "E"}, {"n": 28, "a": "Tind sa-mi pastrez gandurile si opiniile pentru mine.", "b": "Tind sa imi impartasesc imediat opinile si ideile.", "la": "A", "lb": "T"}, {"n": 29, "a": "Tind sa doresc sa fac lucrurile asa cum cred eu cand lucrez cu altii.", "b": "Tind sa accept si un alt mod atunci cand lucrez cu altii.", "la": "T", "lb": "A"}, {"n": 30, "a": "Am tendinta sa imi impartasesc sentimentele personale cu altii.", "b": "Am tendinta sa pastrez pentru mine sentimentele personale.", "la": "E", "lb": "C"}];
+const quiz=document.getElementById('quiz');
+questions.forEach(q=>{
+ const card=document.createElement('section');card.className='card';
+ card.innerHTML=`<div class="qnum">Întrebarea ${q.n} / 30</div>
+ <label class="choice"><input type="radio" name="q${q.n}" value="a"><span><b>A.</b> ${q.a}</span></label>
+ <label class="choice"><input type="radio" name="q${q.n}" value="b"><span><b>B.</b> ${q.b}</span></label>`;
+ quiz.appendChild(card);
+});
+function classify(s){
+ const h=s.A>s.T?'A':s.T>s.A?'T':'=';
+ const v=s.C>s.E?'C':s.E>s.C?'E':'=';
+ if(h==='A'&&v==='C')return 'ANALITIC';
+ if(h==='A'&&v==='E')return 'AMABIL';
+ if(h==='T'&&v==='E')return 'EXPRESIV';
+ if(h==='T'&&v==='C')return 'DIRECTIV';
+ if(h==='='&&v==='=')return 'MIXT / ECHILIBRAT';
+ if(h==='=')return v==='C'?'ANALITIC – DIRECTIV':'AMABIL – EXPRESIV';
+ return h==='A'?'ANALITIC – AMABIL':'DIRECTIV – EXPRESIV';
+}
+function draw(s){
+ const cv=document.getElementById('chart'),ctx=cv.getContext('2d'),w=cv.width,h=cv.height,cx=w/2,cy=h/2,R=250;
+ ctx.clearRect(0,0,w,h);ctx.lineWidth=2;ctx.strokeStyle='#4b5563';ctx.fillStyle='#111827';ctx.font='bold 24px system-ui';
+ ctx.beginPath();ctx.moveTo(cx-R,cy);ctx.lineTo(cx+R,cy);ctx.moveTo(cx,cy-R);ctx.lineTo(cx,cy+R);ctx.stroke();
+ ctx.fillText('A',cx-R-38,cy+8);ctx.fillText('T',cx+R+18,cy+8);ctx.fillText('C',cx-8,cy-R-18);ctx.fillText('E',cx-8,cy+R+38);
+ ctx.font='bold 19px system-ui';ctx.fillText('ANALITIC',cx-R+15,cy-R+35);ctx.fillText('DIRECTIV',cx+R-105,cy-R+35);ctx.fillText('AMABIL',cx-R+15,cy+R-18);ctx.fillText('EXPRESIV',cx+R-105,cy+R-18);
+ ctx.strokeStyle='#d1d5db';ctx.lineWidth=1;ctx.font='13px system-ui';ctx.fillStyle='#6b7280';
+ for(let i=1;i<=15;i++){let d=R*i/15;ctx.beginPath();ctx.moveTo(cx-d,cy-5);ctx.lineTo(cx-d,cy+5);ctx.moveTo(cx+d,cy-5);ctx.lineTo(cx+d,cy+5);ctx.moveTo(cx-5,cy-d);ctx.lineTo(cx+5,cy-d);ctx.moveTo(cx-5,cy+d);ctx.lineTo(cx+5,cy+d);ctx.stroke();}
+ const pts={A:[cx-R*s.A/15,cy],C:[cx,cy-R*s.C/15],T:[cx+R*s.T/15,cy],E:[cx,cy+R*s.E/15]};
+ ctx.beginPath();ctx.moveTo(...pts.A);ctx.lineTo(...pts.C);ctx.lineTo(...pts.T);ctx.lineTo(...pts.E);ctx.closePath();
+ ctx.fillStyle='rgba(38,59,106,.18)';ctx.fill();ctx.strokeStyle='#263b6a';ctx.lineWidth=5;ctx.stroke();
+ for(const k of ['A','C','T','E']){let [x,y]=pts[k];ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fillStyle='#263b6a';ctx.fill();ctx.fillStyle='#111827';ctx.font='bold 18px system-ui';ctx.fillText(k+' '+s[k],x+12,y-12);}
+}
+document.getElementById('calc').onclick=()=>{
+ const s={A:0,T:0,C:0,E:0};let done=0;
+ questions.forEach(q=>{const el=document.querySelector(`input[name=q${q.n}]:checked`);if(el){done++;s[el.value==='a'?q.la:q.lb]++;}});
+ const err=document.getElementById('err');if(done!==30){err.style.display='block';document.querySelector('.card:not(:has(input:checked))')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+ err.style.display='none';
+ document.getElementById('scores').innerHTML=['A','T','C','E'].map(k=>`<div class="score">${k}<b>${s[k]}</b></div>`).join('');
+ document.getElementById('style').textContent=classify(s);
+ document.getElementById('mix').textContent=`A+T = ${s.A+s.T} • C+E = ${s.C+s.E}`;
+ document.getElementById('result').style.display='block';draw(s);
+ document.getElementById('result').scrollIntoView({behavior:'smooth'});
+};
+</script></body></html>
